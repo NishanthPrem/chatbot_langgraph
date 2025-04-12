@@ -40,6 +40,7 @@ llm_with_tools = llm.bind_tools(tools)
 
 tool_node = ToolNode(tools=tools)
 
+# Building the state graph
 graph_builder = StateGraph(State)
 graph_builder.add_node("chatbot", chatbot)
 graph_builder.add_node("tools", tool_node)
@@ -48,6 +49,7 @@ graph_builder.add_edge("tools", "chatbot")
 graph_builder.set_entry_point("chatbot")
 graph = graph_builder.compile()
 
+# Receiving user input in a loop
 while True:
     try:
         user_input = input("User: ")
