@@ -7,6 +7,7 @@ from typing_extensions import TypedDict
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
+from langchain_community.tools.tavily_search import TavilySearchResults
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -26,7 +27,10 @@ def stream_graph_updates(user_input: str):
             print("Assistant:", value["messages"][-1].content)
 
 
+tool = TavilySearchResults(max_results=2)
+tools = [tool]
 llm = ChatOpenAI()
+llm_with_tools = llm.bind_tools(tools)
 
 graph_builder = StateGraph(State)
 graph_builder.add_edge(START, "chatbot")
