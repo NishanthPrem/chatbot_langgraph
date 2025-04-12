@@ -9,6 +9,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.checkpoint.memory import MemorySaver
 
 # Loading the environment variables from .env file
 load_dotenv()
@@ -27,9 +28,13 @@ def chatbot(state: State):
 
 # Stream function to get the updates from the graph
 def stream_graph_updates(user_input: str):
-    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}):
-        for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
+    config = {"configurable": {"thread_id": "1"}}
+    for event in graph.stream(
+        {"messages": [{"role": "user", "content": user_input}]},
+        config=config,
+        stream_mode="values",
+    ):
+        event["messages"][-1].pretty_print()
 
 
 # Initializing the search tool and language model
@@ -37,6 +42,7 @@ search = TavilySearchResults(max_results=2)
 tools = [search]
 llm = ChatOpenAI()
 llm_with_tools = llm.bind_tools(tools)
+
 
 tool_node = ToolNode(tools=tools)
 
@@ -47,7 +53,8 @@ graph_builder.add_node("tools", tool_node)
 graph_builder.add_conditional_edges("chatbot", tools_condition)
 graph_builder.add_edge("tools", "chatbot")
 graph_builder.set_entry_point("chatbot")
-graph = graph_builder.compile()
+memory = MemorySaver()
+graph = graph_builder.compile(checkpointer=memory)
 
 # Receiving user input in a loop
 while True:
@@ -58,8 +65,5 @@ while True:
             break
 
         stream_graph_updates(user_input)
-    except:
-        user_input = "What do you know about LangGraph?"
-        print("User: " + user_input)
-        stream_graph_updates(user_input)
-        break
+    except Exception as e:
+        print("An error occurred:", e)
