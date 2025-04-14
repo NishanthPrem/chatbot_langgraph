@@ -14,6 +14,8 @@ from langgraph.checkpoint.memory import MemorySaver
 # Loading the environment variables from .env file
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY not found in environment variables")
 
 
 # Creating the state State class capable of storing messages
@@ -56,13 +58,23 @@ memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)
 
 # Receiving user input in a loop
+print("Chatbot initialized. Type 'quit', 'exit', or 'q' to end the conversation.")
 while True:
     try:
-        user_input = input("User: ")
+        user_input = input("\nUser: ").strip()
+        if not user_input:
+            print("Please enter a valid input.")
+            continue
+            
         if user_input.lower() in ["quit", "exit", "q"]:
-            print("Goodbye!")
+            print("\nThank you for using the chatbot. Goodbye!")
             break
 
+        print("\nBot:", end=" ")
         stream_graph_updates(user_input)
+    except KeyboardInterrupt:
+        print("\nReceived interrupt signal. Shutting down gracefully...")
+        break
     except Exception as e:
-        print("An error occurred:", e)
+        print(f"\nAn error occurred: {str(e)}")
+        print("Please try again.")
